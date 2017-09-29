@@ -4,13 +4,19 @@ class SimEnvelope:
     def __init__(self, src_name="", dst_name=""):
         self.src = src_name
         self.dst = dst_name
-        self.msg = []
+        self.msg_list = []
 
     def insert(self, msg):
-        self.msg.append(msg)
+        self.msg_list.append(msg)
 
-    def reterive(self):
-        return self.msg
+    def retrive(self):
+        return self.msg_list
+
+    def get_src(self):
+        return self.src
+
+    def get_dst(self):
+        return self.dst
 
 class SimObject:
     def __init__(self, instance_time, destruct_time, name):
@@ -56,7 +62,7 @@ class SimObject:
         return self.outport_lst
 
     # External Transition
-    def ext_trans(self, msg):
+    def ext_trans(self, port, msg):
         return False
 
     # Internal Transition
@@ -90,6 +96,8 @@ class SimEngine:
         #dictionary for object to ports
         self.port_map = {}
 
+        self.min_schedule_item = list()
+
     # retrive global time
     def get_global_time(self):
         return self.global_time;
@@ -108,6 +116,7 @@ class SimEngine:
                 for obj in lst:
                     print("global:",self.global_time," create agent:", obj.get_obj_name())
                     self.active_obj_map[obj.get_obj_name()] = obj
+                    self.min_schedule_item.append((obj.time_advance() + self.global_time, obj))
                 del self.waiting_obj_map[key]
 
     def destroy_agent(self):
@@ -126,41 +135,41 @@ class SimEngine:
 
     def output_handling(self, obj, msg):
         if msg is not None:
-            destination = self.port_map[(obj, msg[0])]
+            destination = self.port_map[(obj, msg.get_dst())]
             if destination == None:
                 print("Destination Not Found")
                 raise AssertionError
 
-            destination[0].ext_trans(destination[1], msg[1])
+            destination[0].ext_trans(destination[1], msg)
 
     def init_sim(self):
         self.global_time = min(self.waiting_obj_map)
+        for obj in self.active_obj_map.items():
+            if obj[1].time_advance() < 0: # exception handling for parent instance
+                print("You should override the time_advanced function")
+                raise AssertionError
+            self.min_schedule_item.append((obj[1].time_advance()+self.global_time, obj))
 
     def schedule(self):
         # Agent Creation
         self.create_agent()
 
-        min_schedule_item = list()
-
-        for obj in self.active_obj_map.items():
-            if obj[1].time_advance() < 0: # exception handling for parent instance
-                print("You should override the time_advanced function")
-                raise AssertionError
-            min_schedule_item.append((obj[1].time_advance()+self.global_time, obj))
-
         # select object that requested minimum time
-        min_schedule_item.sort()
-        time, tuple_obj = min_schedule_item.pop(0)
+        self.min_schedule_item.sort()
+
+        time, tuple_obj = self.min_schedule_item.pop(0)
 
         while time <= self.global_time:
-            msg = tuple_obj[1].output()
-            if msg != None:
-                self.output_handling(tuple_obj[1], msg)
+            msg = tuple_obj.output()
+            if msg is not None:
+                self.output_handling(tuple_obj, msg)
 
-            tuple_obj[1].int_trans()
-            min_schedule_item.append((tuple_obj[1].time_advance() + self.global_time, tuple_obj[1]))
-            min_schedule_item.sort()
-            time, tuple_obj = min_schedule_item.pop(0)
+            tuple_obj.int_trans()
+            self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
+            self.min_schedule_item.sort()
+            time, tuple_obj = self.min_schedule_item.pop(0)
+
+        self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
 
         # update Global Time
         self.global_time += self.time_step
@@ -172,4 +181,3 @@ class SimEngine:
         self.init_sim()
         while len(self.waiting_obj_map) != 0 or len(self.active_obj_map) != 0:
             self.schedule()
-
