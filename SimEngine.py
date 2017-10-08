@@ -37,6 +37,7 @@ class SimEngine(object):
                     print("global:",self.global_time," create agent:", obj.get_obj_name())
                     self.active_obj_map[obj.get_obj_name()] = obj
                     #self.min_schedule_item.append((obj.time_advance() + self.global_time, obj))
+                    obj.set_req_time(self.global_time)
                     self.min_schedule_item.append(obj)
                 del self.waiting_obj_map[key]
 
@@ -65,6 +66,7 @@ class SimEngine(object):
             # Receiver Message Handling
             destination[0].ext_trans(destination[1], msg)
             # Receiver Scheduling
+            destination[0].set_req_time(self.global_time + destination[0].time_advance())
             #self.min_schedule_item.pop()
             #self.min_schedule_item.append((destination[0].time_advance() + self.global_time, destination[0]))
 
@@ -75,6 +77,7 @@ class SimEngine(object):
                 print("You should override the time_advanced function")
                 raise AssertionError
             #self.min_schedule_item.append((obj[1].time_advance() + self.global_time, obj))
+            obj.set_req_time(self.global_time)
             self.min_schedule_item.append(obj)
 
     def schedule(self):
@@ -82,19 +85,20 @@ class SimEngine(object):
         self.create_agent()
 
         # select object that requested minimum time
-        self.min_schedule_item = sorted(self.min_schedule_item, key=lambda bm:bm.time_advance())
+        self.min_schedule_item = sorted(self.min_schedule_item, key=lambda bm:bm.get_req_time())
 
         tuple_obj = self.min_schedule_item[0]
 
-        while tuple_obj.time_advance() + self.global_time <= self.global_time:
+        while tuple_obj.get_req_time() <= self.global_time:
             msg = tuple_obj.output()
             if msg is not None:
                 self.output_handling(tuple_obj, msg)
 
             # Sender Scheduling
             tuple_obj.int_trans()
+            tuple_obj.set_req_time(self.global_time)
             #self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
-            self.min_schedule_item = sorted(self.min_schedule_item, key=lambda bm:bm.time_advance())
+            self.min_schedule_item = sorted(self.min_schedule_item, key=lambda bm:bm.get_req_time())
             tuple_obj = self.min_schedule_item[0]
 
         #self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
