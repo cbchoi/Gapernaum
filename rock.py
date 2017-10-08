@@ -1,14 +1,20 @@
-from peter import *
-import datetime
+#from peter import *
+#import datetime
 
-class Human(SimObject):
+from BehaviorModel import *
+from SimEnvelop import *
+from SimEngine import *
+
+se = SimEngine()
+
+class Human(BehaviorModel):
     def __init__(self, instance_time, destruct_time, name):
-        SimObject.__init__(self, instance_time, destruct_time, name)
+        BehaviorModel.__init__(self, instance_time, destruct_time, name)
         self.x = 0
         self.y = 0
         self.spd = 10
 
-        self.state = "IDLE"
+        self.init_state("IDLE")
         self.add_state("IDLE", 0)
         self.add_state("MOVE", 1)
 
@@ -16,50 +22,54 @@ class Human(SimObject):
         self.add_out_port("hello")
 
     def ext_trans(self,port, msg):
-        data = msg.retrive()
+        data = msg.retrieve()
         print(data[0])
 
     def output(self):
         self.x += self.spd
         self.y += self.spd
 
-        print(str(self.x) +"," +str(self.y))
+        temp = "[%f] (%d, %d)" % (se.get_global_time(), self.x, self.y)
+        print(temp)
         msg = SimEnvelope(self.get_obj_name(), "hello")
         print(str(datetime.datetime.now()) + " Human Object:")
         msg.insert("I am")
-
         return msg
+
     def int_trans(self):
-        if self.state == "IDLE":
-            self.state = "MOVE"
+        if self._state == "IDLE":
+            self._state = "MOVE"
         else:
-            self.state = "MOVE"
+            self._state = "MOVE"
 
 
-class Receiver(SimObject):
+class Receiver(BehaviorModel):
     def __init__(self, instance_time, destruct_time, name):
-        SimObject.__init__(self, instance_time, destruct_time, name)
+        BehaviorModel.__init__(self, instance_time, destruct_time, name)
         self.x = 0
         self.y = 0
         self.spd = 10
 
-        self.state = "MOVE"
+        self.init_state("MOVE")
         self.add_state("MOVE", 1)
 
         self.add_in_port("greeting")
 
     def ext_trans(self,port, msg):
-        data = msg.retrive()
-        print(str(datetime.datetime.now()) +  " " + str(data[0]))
+        data = msg.retrieve()
+        #print(str(datetime.datetime.now()) +  " " + str(data[0]))
+        temp = "[%f] %s" % (se.get_global_time(), str(data[0]))
+        print(temp)
 
     def output(self):
-        print(str(datetime.datetime.now()) + " " + "Human Receiver Object:" + "Hello")
+        temp = "[%f] %s" % (se.get_global_time(), "Human Receiver Object: Move")
+        print(temp)
         return None
 
     def int_trans(self):
-            self.state = "MOVE"
+            self._state = "MOVE"
 
-se = SimEngine()
+
 h = Human(0, 100, "Peter")
 r = Receiver(0, 100, "Simon")
 se.register_agent(h)
