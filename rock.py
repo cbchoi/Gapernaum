@@ -1,15 +1,5 @@
 from peter import *
-
-class Test(SimObject):
-    def next_event(self):
-        return 0
-
-    def time_advance(self):
-        print("Test")
-        return 1
-
-    def output(self):
-        return None
+import datetime
 
 class Human(SimObject):
     def __init__(self, instance_time, destruct_time, name):
@@ -35,6 +25,7 @@ class Human(SimObject):
 
         print(str(self.x) +"," +str(self.y))
         msg = SimEnvelope(self.get_obj_name(), "hello")
+        print(str(datetime.datetime.now()) + " Human Object:")
         msg.insert("I am")
 
         return msg
@@ -59,10 +50,10 @@ class Receiver(SimObject):
 
     def ext_trans(self,port, msg):
         data = msg.retrive()
-        print(data[0])
+        print(str(datetime.datetime.now()) +  " " + str(data[0]))
 
     def output(self):
-        print("Hello")
+        print(str(datetime.datetime.now()) + " " + "Human Receiver Object:" + "Hello")
         return None
 
     def int_trans(self):

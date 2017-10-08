@@ -1,4 +1,10 @@
+import sys
+from operator import itemgetter
+#from NumPy import *
 # simulation structure
+
+#define
+Infinite = float("inf") # hug value
 
 class SimEnvelope:
     def __init__(self, src_name="", dst_name=""):
@@ -75,7 +81,7 @@ class SimObject:
 
     # Time Advanced Function
     def time_advance(self):
-        if self.time_map.has_key(self.state):
+        if self.state in self.time_map:
             return self.time_map[self.state]
         else:
             return -1
@@ -103,7 +109,7 @@ class SimEngine:
         return self.global_time;
 
     def register_agent(self, sim_obj):
-        if not self.waiting_obj_map.has_key(sim_obj.get_create_time()):
+        if not sim_obj.get_create_time() in self.waiting_obj_map:
             self.waiting_obj_map[sim_obj.get_create_time()] = list()
 
         self.waiting_obj_map[sim_obj.get_create_time()].append(sim_obj)
@@ -155,7 +161,7 @@ class SimEngine:
         self.create_agent()
 
         # select object that requested minimum time
-        self.min_schedule_item.sort()
+        self.min_schedule_item = sorted(self.min_schedule_item, key=itemgetter(0))
 
         time, tuple_obj = self.min_schedule_item.pop(0)
 
@@ -166,7 +172,7 @@ class SimEngine:
 
             tuple_obj.int_trans()
             self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
-            self.min_schedule_item.sort()
+            self.min_schedule_item = sorted(self.min_schedule_item, key=itemgetter(0))
             time, tuple_obj = self.min_schedule_item.pop(0)
 
         self.min_schedule_item.append((tuple_obj.time_advance() + self.global_time, tuple_obj))
